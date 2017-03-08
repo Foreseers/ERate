@@ -7,4 +7,7 @@
     <string name="currency_usd">USD</string>
     <string name="currency_nok">NOK</string>
     <string name="currency_rate">1 = 1</string>
+    <string name="currency_name_RUB">Russian Rouble</string>
+    <string name="currency_name_NOK">Norwegian Krone</string>
+    <string name="add_fragment_button">Add a fragment</string>
 </resources>
