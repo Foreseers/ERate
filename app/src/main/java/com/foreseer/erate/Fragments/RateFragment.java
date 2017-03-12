@@ -1,0 +1,144 @@
+package com.foreseer.erate.Fragments;
+
+import android.content.Context;
+import android.net.Uri;
+import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import com.foreseer.erate.BuildConfig;
+import com.foreseer.erate.Currency.AbstractCurrency;
+import com.foreseer.erate.MainActivity;
+import com.foreseer.erate.R;
+import com.foreseer.erate.SQL.FragmentTableHandler;
+
+
+public class RateFragment extends Fragment {
+
+    private int sqlID;
+
+    private double firstToSecondRate;
+    private double secondToFirstRate;
+
+    private AbstractCurrency firstCurrency;
+    private AbstractCurrency secondCurrency;
+
+    private double rate;
+
+    private OnFragmentInteractionListener mListener;
+
+    public RateFragment() {
+        // Required empty public constructor
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.fragment_rate, container, false);
+    }
+
+    public void setSqlID(int sqlID) {
+        this.sqlID = sqlID;
+    }
+
+    public int getSqlID() {
+        return sqlID;
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        if (context instanceof OnFragmentInteractionListener) {
+            mListener = (OnFragmentInteractionListener) context;
+        } else {
+            throw new RuntimeException(context.toString()
+                    + " must implement OnFragmentInteractionListener");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mListener = null;
+    }
+
+    public interface OnFragmentInteractionListener {
+        void onFragmentDeletion(int id);
+    }
+
+    public void changeCurrency(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency, double rate){
+        TextView firstCurrencyTextView = (TextView) getView().findViewById(R.id.textView_firstCurrency);
+        TextView secondCurrencyTextView = (TextView) getView().findViewById(R.id.textView_secondCurrency);
+        firstCurrencyTextView.setText(firstCurrency.getCurrencyCode());
+        secondCurrencyTextView.setText(secondCurrency.getCurrencyCode());
+
+        TextView firstCurrencyHint = (TextView) getView().findViewById(R.id.textView_firstCurrencyHint);
+        TextView secondCurrencyHint = (TextView) getView().findViewById(R.id.textView_secondCurrencyHint);
+        firstCurrencyHint.setText(firstCurrency.getCurrencyName());
+        secondCurrencyHint.setText(secondCurrency.getCurrencyName());
+
+        ImageView firstCurrencyImage = (ImageView) getView().findViewById(R.id.imageView_firstCurrency);
+        ImageView secondCurrencyImage = (ImageView) getView().findViewById(R.id.imageView_secondCurrency);
+        String firstDrawable = firstCurrency.getCurrencyImageName();
+        String secondDrawable = secondCurrency.getCurrencyImageName();
+
+        int firstImage = getContext().getResources().getIdentifier(firstDrawable, "drawable", BuildConfig.APPLICATION_ID);
+        int secondImage = getContext().getResources().getIdentifier(secondDrawable, "drawable", BuildConfig.APPLICATION_ID);
+
+        firstCurrencyImage.setImageDrawable(ContextCompat.getDrawable(getActivity(), getResources()
+                .getIdentifier(firstDrawable, "drawable", getActivity().getPackageName())));
+        secondCurrencyImage.setImageDrawable(ContextCompat.getDrawable(getActivity(), getResources()
+                .getIdentifier(secondDrawable, "drawable", BuildConfig.APPLICATION_ID)));
+
+        firstToSecondRate = rate;
+        secondToFirstRate = (1 / rate);
+
+        String rateString = "1 = " + String.valueOf(rate).substring(0, 5);
+        TextView rateTextView = (TextView) getView().findViewById(R.id.textView_currencyAmount);
+        rateTextView.setText(rateString);
+    }
+
+    public void swap(View view){
+        setCurrency(secondCurrency, firstCurrency, secondToFirstRate);
+        changeCurrency(firstCurrency, secondCurrency, secondToFirstRate);
+        FragmentTableHandler handler = FragmentTableHandler.getInstance(getContext());
+        handler.swapFragment(sqlID);
+    }
+
+    public void setCurrency(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency, double rate){
+        this.firstCurrency = firstCurrency;
+        this.secondCurrency = secondCurrency;
+        this.rate = rate;
+    }
+
+    @Override
+    public void onStart() {
+        changeCurrency(firstCurrency, secondCurrency, rate);
+        ImageButton button = (ImageButton) getView().findViewById(R.id.imageButton);
+
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mListener.onFragmentDeletion(sqlID);
+            }
+        });
+
+        TextView textView = (TextView) getView().findViewById(R.id.textView_currencyAmount);
+
+        textView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                swap(v);
+            }
+        });
+        super.onStart();
+    }
+}
