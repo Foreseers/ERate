@@ -60,8 +60,10 @@ public class FragmentTableHandler {
             secondCurrency = cursor.getString(cursor.getColumnIndexOrThrow(FragmentTableModel.COLUMN_SECOND_CURRENCY));
         }
         if (firstCurrency.equals("") || secondCurrency.equals("")){
+            cursor.close();
             return;
         }
+        cursor.close();
 
         dbWritable.execSQL("UPDATE " + FragmentTableModel.TABLE_NAME + " SET " + FragmentTableModel.COLUMN_FIRST_CURRENCY + " = '" + secondCurrency + "', " +
         FragmentTableModel.COLUMN_SECOND_CURRENCY + " = '" + firstCurrency + "' WHERE id = " + id);
@@ -73,14 +75,11 @@ public class FragmentTableHandler {
         int count = 0;
 
         if (cursor.moveToNext()) {
-            try {
-                count = cursor.getInt(0);
-            } finally {
-                cursor.close();
-            }
-            return count;
+            count = cursor.getInt(0);
         }
-        return 0;
+        cursor.close();
+
+        return count;
     }
 
     public ArrayList<AbstractRateFragment> getExistingFragments(){

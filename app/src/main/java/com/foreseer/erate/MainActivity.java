@@ -1,11 +1,13 @@
 package com.foreseer.erate;
 
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 
 import com.foreseer.erate.Currency.AbstractCurrency;
 import com.foreseer.erate.Currency.CurrencyHelper;
@@ -16,7 +18,7 @@ import com.foreseer.erate.SQL.FragmentTableHandler;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity implements RateFragment.OnFragmentInteractionListener{
+public class MainActivity extends AppCompatActivity implements RateFragment.OnFragmentInteractionListener {
 
     private int count;
     private FragmentTableHandler fragmentTableHandler;
@@ -34,21 +36,29 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
         currencyTableHandler = CurrencyTableHandler.getInstance(getApplicationContext(), fragmentTableHandler.getDbWritable(), this, false);
         currencyTableHandler.startup(this, false);
 
+        Button button = (Button) findViewById(R.id.buttonAddFragment);
+        button.setClickable(false);
+        if (currencyTableHandler.isReady()){
+            button.setClickable(true);
+        }
+        /*ButtonReadyAsyncChecker buttonReadyAsyncChecker = new ButtonReadyAsyncChecker();
+        buttonReadyAsyncChecker.execute();*/
+
     }
 
-    public void addItem(View view){
+    public void addItem(View view) {
 
     }
 
-    public void updateExistingFragments(){
+    public void updateExistingFragments() {
         ArrayList<AbstractRateFragment> fragments = fragmentTableHandler.getExistingFragments();
 
-        if (fragments == null){
+        if (fragments == null) {
             return;
         }
 
         FragmentManager fragmentManager = getSupportFragmentManager();
-        for (AbstractRateFragment fragment : fragments){
+        for (AbstractRateFragment fragment : fragments) {
             FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
             RateFragment rateFragment = new RateFragment();
             rateFragment.setSqlID(fragment.getId());
@@ -60,14 +70,16 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
         }
     }
 
-    public void addFragment(View view){
+    public void addFragment(View view) {
+        if (currencyTableHandler.isReady()) {
         addFragment(CurrencyHelper.getCurrency("NOK"), CurrencyHelper.getCurrency("RUB"),
                 currencyTableHandler.getExchangeRate(CurrencyHelper.getCurrency("NOK"), CurrencyHelper.getCurrency("RUB")));
         addFragment(CurrencyHelper.getCurrency("USD"), CurrencyHelper.getCurrency("EUR"),
                 currencyTableHandler.getExchangeRate(CurrencyHelper.getCurrency("USD"), CurrencyHelper.getCurrency("EUR")));
+        }
     }
 
-    private void addFragment(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency, double rate){
+    private void addFragment(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency, double rate) {
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         RateFragment rateFragment = new RateFragment();
@@ -94,5 +106,26 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
     protected void onDestroy() {
         fragmentTableHandler.close();
         super.onDestroy();
+    }
+
+    private class ButtonReadyAsyncChecker extends AsyncTask<Void, Void, Boolean> {
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+            while (!currencyTableHandler.isReady()) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            return true;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean aVoid) {
+            Button button = (Button) findViewById(R.id.buttonAddFragment);
+            button.setClickable(true);
+        }
     }
 }
