@@ -3,7 +3,7 @@ package com.foreseer.erate.SQL;
 import android.provider.BaseColumns;
 
 /**
- * Created by Foreseer on 12/03/2017.
+ * Model of the currency table for the DB.
  */
 
 public class CurrencyTableModel implements BaseColumns {

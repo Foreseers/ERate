@@ -4,6 +4,9 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+/**
+ * Helper for the fragment table.
+ */
 public class FragmentTableHelper extends SQLiteOpenHelper {
 
     public FragmentTableHelper(Context context){

@@ -1,5 +1,6 @@
 package com.foreseer.erate.Fragments;
 
+import android.app.Activity;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
@@ -140,5 +141,38 @@ public class RateFragment extends Fragment {
             }
         });
         super.onStart();
+    }
+
+    public void updateRate(double rate){
+        this.rate = rate;
+        class MyRunnable implements Runnable{
+            private AbstractCurrency firstCurrency;
+            private AbstractCurrency secondCurrency;
+            private double rate;
+
+            public MyRunnable(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency, double rate) {
+                this.firstCurrency = firstCurrency;
+                this.secondCurrency = secondCurrency;
+                this.rate = rate;
+            }
+
+            @Override
+            public void run() {
+                changeCurrency(this.firstCurrency, this.secondCurrency, this.rate);
+            }
+        }
+        getActivity().runOnUiThread(new MyRunnable(this.firstCurrency, this.secondCurrency, this.rate));
+    }
+
+    public AbstractCurrency getFirstCurrency() {
+        return firstCurrency;
+    }
+
+    public AbstractCurrency getSecondCurrency() {
+        return secondCurrency;
+    }
+
+    public double getRate() {
+        return rate;
     }
 }

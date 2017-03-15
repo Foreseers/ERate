@@ -2,10 +2,10 @@ package com.foreseer.erate.SQL;
 
 import android.provider.BaseColumns;
 
-/**
- * Created by Foreseer on 11/03/2017.
- */
 
+/**
+ * Model of fragment table for the DB.
+ */
 public class FragmentTableModel implements BaseColumns{
     private FragmentTableModel() {}
 

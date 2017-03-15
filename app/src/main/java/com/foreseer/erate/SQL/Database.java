@@ -1,7 +1,7 @@
 package com.foreseer.erate.SQL;
 
 /**
- * Created by Foreseer on 11/03/2017.
+ * This class contains filename of the database file.
  */
 
 public class Database {

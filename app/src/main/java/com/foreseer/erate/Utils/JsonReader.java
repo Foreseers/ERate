@@ -11,10 +11,10 @@ import java.io.Reader;
 import java.net.URL;
 import java.nio.charset.Charset;
 
-/**
- * Created by Foreseer on 09/03/2017.
- */
 
+/**
+ * Class which helps parsing Json from URL.
+ */
 public class JsonReader {
     private static String readAll(Reader rd) throws IOException {
         StringBuilder sb = new StringBuilder();

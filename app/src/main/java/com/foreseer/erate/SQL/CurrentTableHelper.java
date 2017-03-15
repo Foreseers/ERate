@@ -4,6 +4,10 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+/**
+ * Helper for the DB, used by handler classes.
+ */
+
 public class CurrentTableHelper extends SQLiteOpenHelper {
 
     public CurrentTableHelper(Context context){
