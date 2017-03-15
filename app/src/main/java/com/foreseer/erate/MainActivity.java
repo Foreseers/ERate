@@ -126,6 +126,7 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
             AbstractCurrency usd = CurrencyHelper.getCurrency("USD");
             AbstractCurrency eur = CurrencyHelper.getCurrency("EUR");
             AbstractCurrency czk = CurrencyHelper.getCurrency("CZK");
+            AbstractCurrency aud = CurrencyHelper.getCurrency("AUD");
             /*addFragment(CurrencyHelper.getCurrency("NOK"), CurrencyHelper.getCurrency("RUB"),
                     currencyTableHandler.getExchangeRate(CurrencyHelper.getCurrency("NOK"), CurrencyHelper.getCurrency("RUB")));
             addFragment(CurrencyHelper.getCurrency("USD"), CurrencyHelper.getCurrency("EUR"),
@@ -134,7 +135,7 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
             addFragment(czk, nok);
             addFragment(rub, czk);
             addFragment(usd, nok);
-            addFragment(eur, nok);
+            addFragment(eur, aud);
         }
     }
 
