@@ -1,5 +1,6 @@
 package com.foreseer.erate;
 
+import android.animation.LayoutTransition;
 import android.content.Context;
 import android.media.Image;
 import android.net.ConnectivityManager;
@@ -11,7 +12,9 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.RotateAnimation;
@@ -39,6 +42,9 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
     //Handler of the currency SQL table, which stores actual exchange rates for currencies
     private CurrencyTableHandler currencyTableHandler;
 
+    //Handles adding/deleting fragment
+    private FragmentManager fragmentManager;
+
     //Array list with all active fragments, in case if rates need to be updated
     private List<RateFragment> activeFragments;
 
@@ -47,7 +53,13 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        fragmentManager = getSupportFragmentManager();
         activeFragments = new ArrayList<>();
+
+        ViewGroup viewGroup = (ViewGroup) findViewById(R.id.linearLayout);
+        LayoutTransition transition = new LayoutTransition();
+        transition.setDuration(200);
+        viewGroup.setLayoutTransition(transition);
 
 
         fragmentTableHandler = FragmentTableHandler.getInstance(getApplicationContext());
@@ -116,17 +128,18 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
 
     /**
      * This method is called when the "add fragment" button is pressed.
+     *
      * @param view View which called the method
      */
     public void addFragment(View view) {
         //If currency DB isn't ready yet, adding fragments isn't permitted.
         if (currencyTableHandler.isReady()) {
-            AbstractCurrency nok = CurrencyHelper.getCurrency("NOK");
-            AbstractCurrency rub = CurrencyHelper.getCurrency("RUB");
-            AbstractCurrency usd = CurrencyHelper.getCurrency("USD");
-            AbstractCurrency eur = CurrencyHelper.getCurrency("EUR");
-            AbstractCurrency czk = CurrencyHelper.getCurrency("CZK");
-            AbstractCurrency aud = CurrencyHelper.getCurrency("AUD");
+            final AbstractCurrency nok = CurrencyHelper.getCurrency("NOK");
+            final AbstractCurrency rub = CurrencyHelper.getCurrency("RUB");
+            final AbstractCurrency usd = CurrencyHelper.getCurrency("USD");
+            final AbstractCurrency eur = CurrencyHelper.getCurrency("EUR");
+            final AbstractCurrency czk = CurrencyHelper.getCurrency("CZK");
+            final AbstractCurrency aud = CurrencyHelper.getCurrency("AUD");
             /*addFragment(CurrencyHelper.getCurrency("NOK"), CurrencyHelper.getCurrency("RUB"),
                     currencyTableHandler.getExchangeRate(CurrencyHelper.getCurrency("NOK"), CurrencyHelper.getCurrency("RUB")));
             addFragment(CurrencyHelper.getCurrency("USD"), CurrencyHelper.getCurrency("EUR"),
@@ -136,16 +149,18 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
             addFragment(rub, czk);
             addFragment(usd, nok);
             addFragment(eur, aud);
+
         }
     }
 
     /**
      * This method is called when the update button is pressed.
      * Essentially it creates a new RateChecker instance, which updates the rates and updates the DB when it's done.
+     *
      * @param view View which called the method
      */
     public void updateRates(View view) {
-        if (!isConnectedToInternet()){
+        if (!isConnectedToInternet()) {
             showShortToast("No internet connection!");
             return;
         }
@@ -162,25 +177,25 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
 
                 boolean timeout = false;
 
-                while (!timeout){
+                while (!timeout) {
                     try {
                         Thread.sleep(1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    if (!newChecker.isDone()){
+                    if (!newChecker.isDone()) {
                         count++;
                     } else {
                         break;
                     }
-                    if (count >= 30){
+                    if (count >= 30) {
                         timeout = true;
                     }
                 }
-                if ((newChecker.isDone() && newChecker.getRates() == null) || newChecker.isInterrupted()){
+                if ((newChecker.isDone() && newChecker.getRates() == null) || newChecker.isInterrupted()) {
                     updateInterrupted();
                 }
-                if (timeout){
+                if (timeout) {
                     updateTimeout(newChecker);
                 }
             }
@@ -189,7 +204,7 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
         thread.start();
     }
 
-    public void updateTimeout(RateChecker checker){
+    public void updateTimeout(RateChecker checker) {
         checker.setInterrupted(true);
         runOnUiThread(new Runnable() {
             @Override
@@ -203,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
         });
     }
 
-    public void updateInterrupted(){
+    public void updateInterrupted() {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -217,7 +232,7 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
 
     }
 
-    private boolean isConnectedToInternet(){
+    private boolean isConnectedToInternet() {
         ConnectivityManager connectivityManager
                 = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
@@ -226,31 +241,30 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
 
     /**
      * This method actually adds the fragment onto the activity.
-     * @param firstCurrency     First currency of the fragment
-     * @param secondCurrency    Second currency of the fragment
+     *
+     * @param firstCurrency  First currency of the fragment
+     * @param secondCurrency Second currency of the fragment
      */
     private void addFragment(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency) {
-        double rate = currencyTableHandler.getExchangeRate(firstCurrency, secondCurrency);
+        String firstCurrencyCode = firstCurrency.getCurrencyCode();
+        String secondCurrencyCode = secondCurrency.getCurrencyCode();
 
-        FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         RateFragment rateFragment = new RateFragment();
         rateFragment.setCurrency(firstCurrency, secondCurrency,
-                currencyTableHandler.getExchangeRate(CurrencyHelper.getCurrency(firstCurrency.getCurrencyCode()),
-                        CurrencyHelper.getCurrency(secondCurrency.getCurrencyCode())));
-
-        fragmentTableHandler.createFragment(firstCurrency.getCurrencyCode(), secondCurrency.getCurrencyCode());
-        int availableSQLID = fragmentTableHandler.getCount() + 1;
-
+                currencyTableHandler.getExchangeRate(CurrencyHelper.getCurrency(firstCurrencyCode),
+                        CurrencyHelper.getCurrency(secondCurrencyCode)));
+        fragmentTableHandler.createFragment(firstCurrencyCode, secondCurrencyCode);
+        int availableSQLID = fragmentTableHandler.getCount();
         fragmentTransaction.add(R.id.linearLayout, rateFragment, "RateFragment" + availableSQLID);
         fragmentTransaction.commit();
-
         rateFragment.setSqlID(availableSQLID);
     }
 
     /**
      * This method is called when the "delete" button is pressed inside the fragment.
      * Probably will be called by swiping in future and whatnot.
+     *
      * @param id SqlID of the fragment.
      */
     @Override
@@ -262,8 +276,8 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
                 break;
             }
         }
-        RateFragment fragment = (RateFragment) getSupportFragmentManager().findFragmentByTag("RateFragment" + id);
-        getSupportFragmentManager().beginTransaction().remove(fragment).commit();
+        RateFragment fragment = (RateFragment) fragmentManager.findFragmentByTag("RateFragment" + id);
+        fragmentManager.beginTransaction().remove(fragment).commit();
     }
 
     @Override
@@ -271,6 +285,7 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
         fragmentTableHandler.close();
         super.onDestroy();
     }
+
 
     /**
      * When update of rates is finished, this method shows a toast, clears animations and, if needed, makes buttons clickable.
@@ -288,7 +303,7 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
                 //If the "add fragment" button is unclickable, set it clickable.
                 Button addButton = (Button) findViewById(R.id.buttonAddFragment);
                 if (!addButton.isClickable()) {
-                    button.setClickable(true);
+                    addButton.setClickable(true);
                 }
             }
         });
@@ -296,7 +311,8 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
 
     /**
      * This method updates the "last update time" text view.
-     * @param lastTime  Last time of update, in milliseconds.
+     *
+     * @param lastTime Last time of update, in milliseconds.
      */
     public void updateLastUpdateTime(final long lastTime) {
         runOnUiThread(new Runnable() {
@@ -313,7 +329,7 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
 
     }
 
-    private void showShortToast(String text){
+    private void showShortToast(String text) {
         int duration = Toast.LENGTH_SHORT;
 
         Toast toast = Toast.makeText(getApplicationContext(), text, duration);
