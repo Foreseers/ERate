@@ -1,22 +1,18 @@
 package com.foreseer.erate.Fragments;
 
-import android.app.Activity;
 import android.content.Context;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.foreseer.erate.BuildConfig;
 import com.foreseer.erate.Currency.AbstractCurrency;
-import com.foreseer.erate.MainActivity;
 import com.foreseer.erate.R;
 import com.foreseer.erate.SQL.FragmentTableHandler;
 
@@ -46,12 +42,12 @@ public class RateFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_rate, container, false);
     }
 
-    public void setSqlID(int sqlID) {
-        this.sqlID = sqlID;
-    }
-
     public int getSqlID() {
         return sqlID;
+    }
+
+    public void setSqlID(int sqlID) {
+        this.sqlID = sqlID;
     }
 
     @Override
@@ -71,11 +67,7 @@ public class RateFragment extends Fragment {
         mListener = null;
     }
 
-    public interface OnFragmentInteractionListener {
-        void onFragmentDeletion(int id);
-    }
-
-    public void changeCurrency(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency, double rate){
+    public void changeCurrency(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency, double rate) {
         TextView firstCurrencyTextView = (TextView) getView().findViewById(R.id.textView_firstCurrency);
         TextView secondCurrencyTextView = (TextView) getView().findViewById(R.id.textView_secondCurrency);
         firstCurrencyTextView.setText(firstCurrency.getCurrencyCode());
@@ -107,14 +99,14 @@ public class RateFragment extends Fragment {
         rateTextView.setText(rateString);
     }
 
-    public void swap(View view){
+    public void swap(View view) {
         setCurrency(secondCurrency, firstCurrency, secondToFirstRate);
         changeCurrency(firstCurrency, secondCurrency, secondToFirstRate);
         FragmentTableHandler handler = FragmentTableHandler.getInstance(getContext());
         handler.swapFragment(sqlID);
     }
 
-    public void setCurrency(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency, double rate){
+    public void setCurrency(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency, double rate) {
         this.firstCurrency = firstCurrency;
         this.secondCurrency = secondCurrency;
         this.rate = rate;
@@ -143,9 +135,9 @@ public class RateFragment extends Fragment {
         super.onStart();
     }
 
-    public void updateRate(double rate){
+    public void updateRate(double rate) {
         this.rate = rate;
-        class MyRunnable implements Runnable{
+        class MyRunnable implements Runnable {
             private AbstractCurrency firstCurrency;
             private AbstractCurrency secondCurrency;
             private double rate;
@@ -174,5 +166,9 @@ public class RateFragment extends Fragment {
 
     public double getRate() {
         return rate;
+    }
+
+    public interface OnFragmentInteractionListener {
+        void onFragmentDeletion(int id);
     }
 }

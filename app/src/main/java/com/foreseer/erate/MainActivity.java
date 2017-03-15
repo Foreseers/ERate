@@ -1,6 +1,9 @@
 package com.foreseer.erate;
 
 import android.content.Context;
+import android.media.Image;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
@@ -118,10 +121,20 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
     public void addFragment(View view) {
         //If currency DB isn't ready yet, adding fragments isn't permitted.
         if (currencyTableHandler.isReady()) {
-            addFragment(CurrencyHelper.getCurrency("NOK"), CurrencyHelper.getCurrency("RUB"),
+            AbstractCurrency nok = CurrencyHelper.getCurrency("NOK");
+            AbstractCurrency rub = CurrencyHelper.getCurrency("RUB");
+            AbstractCurrency usd = CurrencyHelper.getCurrency("USD");
+            AbstractCurrency eur = CurrencyHelper.getCurrency("EUR");
+            AbstractCurrency czk = CurrencyHelper.getCurrency("CZK");
+            /*addFragment(CurrencyHelper.getCurrency("NOK"), CurrencyHelper.getCurrency("RUB"),
                     currencyTableHandler.getExchangeRate(CurrencyHelper.getCurrency("NOK"), CurrencyHelper.getCurrency("RUB")));
             addFragment(CurrencyHelper.getCurrency("USD"), CurrencyHelper.getCurrency("EUR"),
-                    currencyTableHandler.getExchangeRate(CurrencyHelper.getCurrency("USD"), CurrencyHelper.getCurrency("EUR")));
+                    currencyTableHandler.getExchangeRate(CurrencyHelper.getCurrency("USD"), CurrencyHelper.getCurrency("EUR")));*/
+            addFragment(rub, nok);
+            addFragment(czk, nok);
+            addFragment(rub, czk);
+            addFragment(usd, nok);
+            addFragment(eur, nok);
         }
     }
 
@@ -131,20 +144,93 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
      * @param view View which called the method
      */
     public void updateRates(View view) {
+        if (!isConnectedToInternet()){
+            showShortToast("No internet connection!");
+            return;
+        }
         //New ratechecker with "forUpdates" parametre set to true.
-        new RateChecker(true);
+        final RateChecker newChecker = new RateChecker(true);
         Animation animation = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.refreshbuttonrotate);
         view.startAnimation(animation);
         view.setClickable(false);
+
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int count = 0;
+
+                boolean timeout = false;
+
+                while (!timeout){
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    if (!newChecker.isDone()){
+                        count++;
+                    } else {
+                        break;
+                    }
+                    if (count >= 30){
+                        timeout = true;
+                    }
+                }
+                if ((newChecker.isDone() && newChecker.getRates() == null) || newChecker.isInterrupted()){
+                    updateInterrupted();
+                }
+                if (timeout){
+                    updateTimeout(newChecker);
+                }
+            }
+        });
+
+        thread.start();
+    }
+
+    public void updateTimeout(RateChecker checker){
+        checker.setInterrupted(true);
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ImageButton updateButton = (ImageButton) findViewById(R.id.imageButton_updateRates);
+                updateButton.clearAnimation();
+                updateButton.setClickable(true);
+
+                showShortToast("Update timeout!");
+            }
+        });
+    }
+
+    public void updateInterrupted(){
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ImageButton updateButton = (ImageButton) findViewById(R.id.imageButton_updateRates);
+                updateButton.clearAnimation();
+                updateButton.setClickable(true);
+
+                showShortToast("Update interrupted!");
+            }
+        });
+
+    }
+
+    private boolean isConnectedToInternet(){
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
     /**
      * This method actually adds the fragment onto the activity.
      * @param firstCurrency     First currency of the fragment
      * @param secondCurrency    Second currency of the fragment
-     * @param rate              Exchange rate
      */
-    private void addFragment(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency, double rate) {
+    private void addFragment(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency) {
+        double rate = currencyTableHandler.getExchangeRate(firstCurrency, secondCurrency);
+
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         RateFragment rateFragment = new RateFragment();
@@ -189,15 +275,11 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
      * When update of rates is finished, this method shows a toast, clears animations and, if needed, makes buttons clickable.
      */
     public void onRatesUpdateFinished() {
+
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                CharSequence text = "Rates updated!";
-                int duration = Toast.LENGTH_SHORT;
-
-                Toast toast = Toast.makeText(getApplicationContext(), text, duration);
-                toast.show();
-
+                showShortToast("Rates updated!");
                 ImageButton button = (ImageButton) findViewById(R.id.imageButton_updateRates);
                 button.clearAnimation();
                 button.setClickable(true);
@@ -228,5 +310,12 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
             }
         });
 
+    }
+
+    private void showShortToast(String text){
+        int duration = Toast.LENGTH_SHORT;
+
+        Toast toast = Toast.makeText(getApplicationContext(), text, duration);
+        toast.show();
     }
 }

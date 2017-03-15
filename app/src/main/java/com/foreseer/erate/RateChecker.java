@@ -13,6 +13,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,12 +43,16 @@ public class RateChecker {
     // True if ratechecker is for updates, in this case it will call currency DB and update it.
     private boolean forUpdates;
 
+    private boolean interrupted;
+
     public RateChecker(boolean forUpdates) {
         this.forUpdates = forUpdates;
 
         currencies = new ArrayList<>();
         exchangeRates = new HashMap<>();
+
         done = false;
+        interrupted = false;
 
         getCurrencyList();
     }
@@ -84,7 +89,7 @@ public class RateChecker {
     private void setExchangeRates(HashMap<String, Double> exchangeRates) {
         this.exchangeRates = exchangeRates;
         this.done = true;
-        if (forUpdates){
+        if (forUpdates && !interrupted){
             CurrencyTableHandler instance = CurrencyTableHandler.getInstance();
             if (instance != null){
                 instance.updateRates(this);
@@ -109,12 +114,23 @@ public class RateChecker {
         return done;
     }
 
+    public boolean isInterrupted() {
+        return interrupted;
+    }
+
+    public void setInterrupted(boolean interrupted) {
+        this.interrupted = interrupted;
+    }
+
     /**
      * Fetches rates from API for a specified currency.
      * @param baseCurrency  Base currency for rate fetch.
      * @return              Exchange rates for base currency.
      */
     private HashMap<String, Double> getRates(String baseCurrency) {
+        if (interrupted){
+            return null;
+        }
         HashMap<String, Double> rates = new HashMap<>();
 
         try {
@@ -128,8 +144,16 @@ public class RateChecker {
                 String currencyFormat = baseCurrency + name;
                 rates.put(currencyFormat, rate);
             }
-        } catch (IOException | JSONException e) {
+        }
+        catch (SocketException e){
+            Log.e("EXCEPTION", "Network is unreachable!");
+            interrupted = true;
+            return null;
+        }
+        catch (IOException | JSONException e) {
             Log.e("EXCEPTION", e.getMessage());
+            interrupted = true;
+            return null;
         }
 
         return rates;
@@ -153,14 +177,25 @@ public class RateChecker {
                 while (names.hasNext()) {
                     currencyList.add(names.next());
                 }
+            } catch (SocketException e){
+                Log.e("EXCEPTION", "Network is unreachable!");
+                interrupted = true;
+                return null;
             } catch (IOException | JSONException e) {
-                e.printStackTrace();
+                Log.e("EXCEPTION", e.getMessage());
+                interrupted = true;
+                return null;
             }
             return currencyList;
         }
 
         @Override
         protected void onPostExecute(ArrayList<String> strings) {
+            if (strings == null || interrupted){
+                done = true;
+                return;
+            }
+
             setCurrencies(strings);
             getExchangeRates();
         }
@@ -174,10 +209,14 @@ public class RateChecker {
 
         @Override
         protected HashMap<String, Double> doInBackground(Void... params) {
+
             HashMap<String, Double> rates = new HashMap<>();
 
             for (String currency : currencies) {
                 Map<String, Double> tempMap = getRates(currency);
+                if (interrupted || tempMap == null){
+                    return null;
+                }
                 rates.putAll(tempMap);
             }
 
@@ -186,6 +225,11 @@ public class RateChecker {
 
         @Override
         protected void onPostExecute(HashMap<String, Double> result) {
+            if (result == null || interrupted){
+                done = true;
+                return;
+            }
+
             setExchangeRates(result);
 
         }
