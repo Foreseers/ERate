@@ -1,18 +1,14 @@
 package com.foreseer.erate.SQL;
 
-import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.widget.Button;
 
 import com.foreseer.erate.Currency.AbstractCurrency;
 import com.foreseer.erate.MainActivity;
-import com.foreseer.erate.R;
-import com.foreseer.erate.RateChecker;
+import com.foreseer.erate.Rates.RateChecker;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -178,7 +174,7 @@ public class CurrencyTableHandler {
      * In case if the table is empty, inserts rows into the table.
      * @param rates  HashMap with exchange rates.
      */
-    private void updateRates(HashMap<String, Double> rates) {
+    private void updateRates(Map<String, Double> rates) {
         long currentTime = System.currentTimeMillis();
 
         //dbWritable.execSQL("DELETE FROM " + CurrencyTableModel.TABLE_NAME);

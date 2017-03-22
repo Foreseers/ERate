@@ -1,11 +1,8 @@
 package com.foreseer.erate;
 
 import android.content.Context;
-import android.media.Image;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.net.Uri;
-import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
@@ -14,7 +11,6 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.view.animation.RotateAnimation;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -24,6 +20,7 @@ import com.foreseer.erate.Currency.AbstractCurrency;
 import com.foreseer.erate.Currency.CurrencyHelper;
 import com.foreseer.erate.Fragments.AbstractRateFragment;
 import com.foreseer.erate.Fragments.RateFragment;
+import com.foreseer.erate.Rates.RateChecker;
 import com.foreseer.erate.SQL.CurrencyTableHandler;
 import com.foreseer.erate.SQL.FragmentTableHandler;
 
@@ -277,19 +274,16 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
      */
     public void onRatesUpdateFinished() {
 
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                showShortToast("Rates updated!");
-                ImageButton button = (ImageButton) findViewById(R.id.imageButton_updateRates);
-                button.clearAnimation();
-                button.setClickable(true);
+        runOnUiThread(() -> {
+            showShortToast("Rates updated!");
+            ImageButton button = (ImageButton) findViewById(R.id.imageButton_updateRates);
+            button.clearAnimation();
+            button.setClickable(true);
 
-                //If the "add fragment" button is unclickable, set it clickable.
-                Button addButton = (Button) findViewById(R.id.buttonAddFragment);
-                if (!addButton.isClickable()) {
-                    button.setClickable(true);
-                }
+            //If the "add fragment" button is unclickable, set it clickable.
+            Button addButton = (Button) findViewById(R.id.buttonAddFragment);
+            if (!addButton.isClickable()) {
+                button.setClickable(true);
             }
         });
     }
