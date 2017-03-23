@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -67,16 +68,34 @@ public class RateChecker {
 
         this.activity = activity;
 
+        Map<String, Double> asyncRates = new HashMap<>();
+
         Observable.defer(() -> createConnection().getCurrency())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .map(model -> model.getRates())
                 .map(rates -> rates.keySet())
-                .subscribe(curr -> {
-                    currencies = new ArrayList<>(curr);
-                    currencies.add(FixerIOApi.BASE_CURRENCY);
-                    fetchAllRates();
-                }, error -> activity.errorOccurred(error.getMessage()));
+                .map(set -> {
+                    ArrayList<String> arrayList = new ArrayList<>();
+                    arrayList.addAll(set);
+                    return arrayList;
+                })
+                .map(list -> {
+                    list.add(FixerIOApi.BASE_CURRENCY);
+                    return list;
+                })
+                .flatMap(list -> Observable.fromIterable(list))
+                .flatMap(currency -> Observable.defer(() -> createConnection().getCurrencyByBase(currency)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())))
+                .map(currency -> {
+                    HashMap<String, Double> rates = currency.getRates();
+                    String baseCurrency = currency.getBase();
+                    return Utils.addCurrenciesWithBase(rates, baseCurrency);
+                })
+                .subscribe(hashMap -> asyncRates.putAll(hashMap), e -> activity.errorOccurred(e.getMessage()), () -> {
+                    finishUpdate(asyncRates);
+                });
     }
 
     /**
