@@ -1,5 +1,6 @@
 package com.foreseer.erate;
 
+import android.animation.LayoutTransition;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -9,10 +10,12 @@ import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -20,6 +23,7 @@ import com.foreseer.erate.Currency.AbstractCurrency;
 import com.foreseer.erate.Currency.CurrencyHelper;
 import com.foreseer.erate.Fragments.AbstractRateFragment;
 import com.foreseer.erate.Fragments.RateFragment;
+import com.foreseer.erate.Rates.CachedExchangeRateStorage;
 import com.foreseer.erate.Rates.RateChecker;
 import com.foreseer.erate.SQL.CurrencyTableHandler;
 import com.foreseer.erate.SQL.FragmentTableHandler;
@@ -39,6 +43,8 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
     //Array list with all active fragments, in case if rates need to be updated
     private List<RateFragment> activeFragments;
 
+    private CachedExchangeRateStorage cachedExchangeRateStorage;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -46,24 +52,32 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
 
         activeFragments = new ArrayList<>();
 
+        ViewGroup viewGroup = (ViewGroup) findViewById(R.id.linearLayout);
+        LayoutTransition transition = new LayoutTransition();
+        transition.setDuration(200);
+        viewGroup.setLayoutTransition(transition);
+
+        cachedExchangeRateStorage = CachedExchangeRateStorage.getInstance();
 
         fragmentTableHandler = FragmentTableHandler.getInstance(getApplicationContext());
         //Shared DB
-        currencyTableHandler = CurrencyTableHandler.getInstance(getApplicationContext(), fragmentTableHandler.getDbWritable(), this, false);
+        currencyTableHandler = CurrencyTableHandler.getInstance(fragmentTableHandler.getDbWritable(), this);
         currencyTableHandler.startup(this, false);
+
 
         //Find and set the "add fragment" button unclickable unless we have exchange rates ready
         Button button = (Button) findViewById(R.id.buttonAddFragment);
-        button.setClickable(false);
+        button.setEnabled(false);
 
         if (currencyTableHandler.isReady()) {
-            button.setClickable(true);
+            button.setEnabled(true);
+            cachedExchangeRateStorage.updateCachedRates(currencyTableHandler.getAllRates(), currencyTableHandler.getLastUpdateTime());
         } else {
             //In case if we update the currency table(first launch), animate the update button
             ImageButton updateButton = (ImageButton) findViewById(R.id.imageButton_updateRates);
             Animation animation = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.refreshbuttonrotate);
             updateButton.startAnimation(animation);
-            updateButton.setClickable(false);
+            updateButton.setEnabled(false);
         }
     }
 
@@ -75,7 +89,8 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
         //If there already are visible loaded fragments
         if (activeFragments.size() != 0) {
             for (RateFragment fragment : activeFragments) {
-                fragment.updateRate(currencyTableHandler.getExchangeRate(fragment.getFirstCurrency(), fragment.getSecondCurrency()));
+                double rate = getRate(fragment.getFirstCurrency(), fragment.getSecondCurrency());
+                fragment.updateRate(rate);
             }
             return;
         }
@@ -98,7 +113,7 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
             fragmentTransaction.commit();
 
             rateFragment.setCurrency(fragment.getFirstCurrency(), fragment.getSecondCurrency(),
-                    currencyTableHandler.getExchangeRate(fragment.getFirstCurrency(), fragment.getSecondCurrency()));
+                    getRate(fragment.getFirstCurrency(), fragment.getSecondCurrency()));
         }
     }
 
@@ -109,6 +124,13 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
             activeFragments.add((RateFragment) fragment);
         }
         super.onAttachFragment(fragment);
+    }
+
+    private double getRate(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency){
+        if (cachedExchangeRateStorage.isSynchronized()){
+            return cachedExchangeRateStorage.getExchangeRate(firstCurrency, secondCurrency);
+        }
+        return currencyTableHandler.getExchangeRate(firstCurrency, secondCurrency);
     }
 
     /**
@@ -147,72 +169,12 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
             return;
         }
         //New ratechecker with "forUpdates" parametre set to true.
-        final RateChecker newChecker = new RateChecker(true);
+        final RateChecker newChecker = new RateChecker(this);
         Animation animation = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.refreshbuttonrotate);
         view.startAnimation(animation);
-        view.setClickable(false);
-
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                int count = 0;
-
-                boolean timeout = false;
-
-                while (!timeout){
-                    try {
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    if (!newChecker.isDone()){
-                        count++;
-                    } else {
-                        break;
-                    }
-                    if (count >= 30){
-                        timeout = true;
-                    }
-                }
-                if ((newChecker.isDone() && newChecker.getRates() == null) || newChecker.isInterrupted()){
-                    updateInterrupted();
-                }
-                if (timeout){
-                    updateTimeout(newChecker);
-                }
-            }
-        });
-
-        thread.start();
+        view.setEnabled(false);
     }
 
-    public void updateTimeout(RateChecker checker){
-        checker.setInterrupted(true);
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                ImageButton updateButton = (ImageButton) findViewById(R.id.imageButton_updateRates);
-                updateButton.clearAnimation();
-                updateButton.setClickable(true);
-
-                showShortToast("Update timeout!");
-            }
-        });
-    }
-
-    public void updateInterrupted(){
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                ImageButton updateButton = (ImageButton) findViewById(R.id.imageButton_updateRates);
-                updateButton.clearAnimation();
-                updateButton.setClickable(true);
-
-                showShortToast("Update interrupted!");
-            }
-        });
-
-    }
 
     private boolean isConnectedToInternet(){
         ConnectivityManager connectivityManager
@@ -227,17 +189,14 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
      * @param secondCurrency    Second currency of the fragment
      */
     private void addFragment(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency) {
-        double rate = currencyTableHandler.getExchangeRate(firstCurrency, secondCurrency);
 
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         RateFragment rateFragment = new RateFragment();
-        rateFragment.setCurrency(firstCurrency, secondCurrency,
-                currencyTableHandler.getExchangeRate(CurrencyHelper.getCurrency(firstCurrency.getCurrencyCode()),
-                        CurrencyHelper.getCurrency(secondCurrency.getCurrencyCode())));
+        rateFragment.setCurrency(firstCurrency, secondCurrency, getRate(firstCurrency, secondCurrency));
 
         fragmentTableHandler.createFragment(firstCurrency.getCurrencyCode(), secondCurrency.getCurrencyCode());
-        int availableSQLID = fragmentTableHandler.getCount() + 1;
+        int availableSQLID = fragmentTableHandler.getCount();
 
         fragmentTransaction.add(R.id.linearLayout, rateFragment, "RateFragment" + availableSQLID);
         fragmentTransaction.commit();
@@ -278,12 +237,12 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
             showShortToast("Rates updated!");
             ImageButton button = (ImageButton) findViewById(R.id.imageButton_updateRates);
             button.clearAnimation();
-            button.setClickable(true);
+            button.setEnabled(true);
 
             //If the "add fragment" button is unclickable, set it clickable.
             Button addButton = (Button) findViewById(R.id.buttonAddFragment);
-            if (!addButton.isClickable()) {
-                button.setClickable(true);
+            if (!addButton.isEnabled()) {
+                addButton.setEnabled(true);
             }
         });
     }
@@ -293,24 +252,37 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
      * @param lastTime  Last time of update, in milliseconds.
      */
     public void updateLastUpdateTime(final long lastTime) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                TextView lastUpdateTV = (TextView) findViewById(R.id.textView_lastUpdateTime);
+        runOnUiThread(() -> {
+            TextView lastUpdateTV = (TextView) findViewById(R.id.textView_lastUpdateTime);
 
-                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd HH:mm");
-                Date resultdate = new Date(lastTime);
+            SimpleDateFormat sdf = new SimpleDateFormat("MMM dd HH:mm");
+            Date resultdate = new Date(lastTime);
 
-                lastUpdateTV.setText("Rates were last updated at: " + sdf.format(resultdate));
-            }
+            lastUpdateTV.setText("Rates were last updated at: " + sdf.format(resultdate));
         });
 
     }
 
-    private void showShortToast(String text){
-        int duration = Toast.LENGTH_SHORT;
+    public void errorOccurred(String text){
+        if (        text.contains("Unable to resolve")
+                ||  text.contains("Timeout")) {
+            showShortToast("Problems with internet connection!");
+        } else {
+            showShortToast(text);
+        }
+        runOnUiThread(() -> {
+            ImageButton updateButton = (ImageButton) findViewById(R.id.imageButton_updateRates);
+            updateButton.clearAnimation();
+            updateButton.setEnabled(true);
+        });
+    }
 
-        Toast toast = Toast.makeText(getApplicationContext(), text, duration);
-        toast.show();
+    public void showShortToast(String text){
+        runOnUiThread(() -> {
+            int duration = Toast.LENGTH_SHORT;
+
+            Toast toast = Toast.makeText(getApplicationContext(), text, duration);
+            toast.show();
+        });
     }
 }
