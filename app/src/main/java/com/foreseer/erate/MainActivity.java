@@ -127,8 +127,8 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
     }
 
     private double getRate(AbstractCurrency firstCurrency, AbstractCurrency secondCurrency){
-        if (cachedExchangeRateStorage.isSynchronized()){
-            return cachedExchangeRateStorage.getExchangeRate(firstCurrency, secondCurrency);
+        if (CachedExchangeRateStorage.getInstance().isSynchronized()){
+            return CachedExchangeRateStorage.getInstance().getExchangeRate(firstCurrency, secondCurrency);
         }
         return currencyTableHandler.getExchangeRate(firstCurrency, secondCurrency);
     }
@@ -169,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
             return;
         }
         //New ratechecker with "forUpdates" parametre set to true.
-        final RateChecker newChecker = new RateChecker(this);
+        final RateChecker newChecker = RateChecker.newInstance(this);
         Animation animation = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.refreshbuttonrotate);
         view.startAnimation(animation);
         view.setEnabled(false);

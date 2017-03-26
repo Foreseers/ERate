@@ -58,8 +58,10 @@ public class RateChecker {
 
     private MainActivity activity;
 
-    public RateChecker(MainActivity activity) {
+    private static RateChecker instance = null;
+    private long lastUpdateTime = 0;
 
+    private RateChecker(MainActivity activity) {
         currencies = new ArrayList<>();
         exchangeRates = new HashMap<>();
 
@@ -71,7 +73,7 @@ public class RateChecker {
         Map<String, Double> asyncRates = new HashMap<>();
 
         Observable.defer(() -> createConnection().getCurrency())
-                .subscribeOn(Schedulers.io())
+                .subscribeOn(Schedulers.computation())
                 .observeOn(AndroidSchedulers.mainThread())
                 .map(model -> model.getRates())
                 .map(rates -> rates.keySet())
@@ -96,6 +98,15 @@ public class RateChecker {
                 .subscribe(hashMap -> asyncRates.putAll(hashMap), e -> activity.errorOccurred(e.getMessage()), () -> {
                     finishUpdate(asyncRates);
                 });
+    }
+
+    public static RateChecker getInstance(){
+        return instance;
+    }
+
+    public static RateChecker newInstance(MainActivity activity){
+        instance = new RateChecker(activity);
+        return instance;
     }
 
     /**
@@ -123,9 +134,21 @@ public class RateChecker {
     }
 
     private void finishUpdate(Map<String, Double> rates){
+        lastUpdateTime = System.currentTimeMillis();
         exchangeRates = rates;
         done = true;
+
         CurrencyTableHandler.getInstance().updateRates(rates);
+
+        Observable.defer(() -> Observable.just(CachedExchangeRateStorage.getInstance().updateCachedRates(rates, lastUpdateTime)))
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe(result -> {}, e -> activity.errorOccurred(e.getMessage()), () -> {
+                    activity.onRatesUpdateFinished();
+                    activity.updateLastUpdateTime(getLastUpdateTime());
+                    activity.updateExistingFragments();
+                });
+
     }
 
     private boolean putNewRate(HashMap<String, Double> map, Map.Entry<String, Double> entry, String baseCurrency){
@@ -167,4 +190,7 @@ public class RateChecker {
         this.interrupted = interrupted;
     }
 
+    public long getLastUpdateTime() {
+        return lastUpdateTime;
+    }
 }

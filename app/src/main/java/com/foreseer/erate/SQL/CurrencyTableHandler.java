@@ -57,11 +57,11 @@ public class CurrencyTableHandler {
      */
     public void startup(MainActivity activity, boolean updateManually) {
         if (updateManually) {
-            rateChecker = new RateChecker(activity);
+            rateChecker = RateChecker.newInstance(activity);
         }
 
         if (!isReady()) {
-            rateChecker = new RateChecker(activity);
+            rateChecker = RateChecker.newInstance(activity);
         } else {
             activity.updateLastUpdateTime(getLastUpdateTime());
             activity.updateExistingFragments();
@@ -164,24 +164,13 @@ public class CurrencyTableHandler {
 
         Observable.defer(() -> Observable.just(updateRatesSync(rates, currentTime)))
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
+                .subscribeOn(Schedulers.computation())
                 .subscribe();
-
-        CachedExchangeRateStorage instance = CachedExchangeRateStorage.getInstance();
-        Observable.defer(() -> Observable.just(instance.updateCachedRates(rates, currentTime)))
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe(result -> {
-                    activity.onRatesUpdateFinished();
-                    activity.updateLastUpdateTime(getLastUpdateTime());
-                    activity.updateExistingFragments();
-                });
     }
 
     private boolean updateRatesSync(Map<String, Double> rates, long currentTime){
-
-
         boolean cleanDB = getLastUpdateTime() == 0;
+        StringBuilder sampleQuery = new StringBuilder("");
         for (Map.Entry<String, Double> rate : rates.entrySet()) {
             String firstCurrency = rate.getKey().substring(0, 3);
             String secondCurrency = rate.getKey().substring(3);
@@ -193,14 +182,42 @@ public class CurrencyTableHandler {
                 values.put(CurrencyTableModel.COLUMN_SECOND_CURRENCY, secondCurrency);
                 values.put(CurrencyTableModel.COLUMN_RATE, exchangeRate);
                 values.put(CurrencyTableModel.COLUMN_TIME, currentTime);
+                /*sampleQuery.append("INSERT INTO ")
+                        .append(CurrencyTableModel.TABLE_NAME)
+                        .append(" VALUES (")
+                        .append("NULL,'")
+                        .append(firstCurrency)
+                        .append("','")
+                        .append(secondCurrency)
+                        .append("',")
+                        .append(exchangeRate)
+                        .append(",")
+                        .append(currentTime)
+                        .append(");");*/
                 long newRowId = dbWritable.insert(CurrencyTableModel.TABLE_NAME, null, values);
             } else {
                 values.put(CurrencyTableModel.COLUMN_RATE, exchangeRate);
                 values.put(CurrencyTableModel.COLUMN_TIME, currentTime);
-                dbWritable.update(CurrencyTableModel.TABLE_NAME, values, CurrencyTableModel.COLUMN_FIRST_CURRENCY+"='"+firstCurrency+"'"+" AND " +
-                        CurrencyTableModel.COLUMN_SECOND_CURRENCY + "='" + secondCurrency+"'", null);
-            }
+                sampleQuery.append("UPDATE " + CurrencyTableModel.TABLE_NAME + " SET " + CurrencyTableModel.COLUMN_RATE + "=")
+                        .append(exchangeRate).append(", ")
+                        .append(CurrencyTableModel.COLUMN_TIME)
+                        .append("=").append(currentTime)
+                        .append(" WHERE ")
+                        .append(CurrencyTableModel.COLUMN_FIRST_CURRENCY)
+                        .append("='")
+                        .append(firstCurrency)
+                        .append("' AND ")
+                        .append(CurrencyTableModel.COLUMN_SECOND_CURRENCY)
+                        .append("='")
+                        .append(secondCurrency)
+                        .append("';");
+                //dbWritable.update(CurrencyTableModel.TABLE_NAME, values, CurrencyTableModel.COLUMN_FIRST_CURRENCY+"='"+firstCurrency+"'"+" AND " +
+                //        CurrencyTableModel.COLUMN_SECOND_CURRENCY + "='" + secondCurrency+"'", null);
 
+            }
+        }
+        if (!sampleQuery.toString().equals("")) {
+            dbWritable.execSQL(sampleQuery.toString());
         }
         return true;
     }

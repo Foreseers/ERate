@@ -18,11 +18,14 @@ public class CachedExchangeRateStorage {
     private boolean isReady;
 
     private long lastUpdateTime;
+    private boolean startedSynchronization;
+
 
     private CachedExchangeRateStorage () {
         exchangeRates = new HashMap<>();
         isReady = false;
         lastUpdateTime = 0;
+        startedSynchronization = false;
 
         CurrencyTableHandler currencyTableHandler = CurrencyTableHandler.getInstance();
         if (currencyTableHandler == null){
@@ -38,7 +41,8 @@ public class CachedExchangeRateStorage {
 
     public static CachedExchangeRateStorage getInstance(){
         if (instance == null){
-            return new CachedExchangeRateStorage();
+            instance = new CachedExchangeRateStorage();
+            return instance;
         }
         return instance;
     }
@@ -51,10 +55,17 @@ public class CachedExchangeRateStorage {
     }
 
     private boolean updateCachedRates(){
+        if (RateChecker.getInstance() != null) {
+            if (RateChecker.getInstance().isDone()) {
+                return updateCachedRates(RateChecker.getInstance().getRates(), RateChecker.getInstance().getLastUpdateTime());
+            }
+        }
+
         CurrencyTableHandler instance = CurrencyTableHandler.getInstance();
         if (instance != null) {
             return updateCachedRates(instance.getAllRates(), instance.getLastUpdateTime());
         }
+
         return false;
     }
 
@@ -80,13 +91,23 @@ public class CachedExchangeRateStorage {
         if (CurrencyTableHandler.getInstance() == null){
             return false;
         }
+        if (RateChecker.getInstance() != null) {
+            if (lastUpdateTime == RateChecker.getInstance().getLastUpdateTime()) {
+                return true;
+            }
+        }
+
         if (lastUpdateTime == CurrencyTableHandler.getInstance().getLastUpdateTime()){
             return true;
         }
-        Observable.defer(() -> Observable.just(updateCachedRates()))
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io())
-                .subscribe();
+
+        if (!startedSynchronization) {
+            startedSynchronization = true;
+            Observable.defer(() -> Observable.just(updateCachedRates()))
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribeOn(Schedulers.io())
+                    .subscribe(result -> startedSynchronization = false);
+        }
 
         return false;
     }
