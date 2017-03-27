@@ -1,27 +1,13 @@
-package com.foreseer.erate.Rates;
+package com.foreseer.erate.RatesUtils;
 
-import android.app.Activity;
-import android.os.AsyncTask;
-import android.util.Log;
-
-import com.foreseer.erate.MainActivity;
+import com.foreseer.erate.Activities.MainActivity;
 import com.foreseer.erate.SQL.CurrencyTableHandler;
-import com.foreseer.erate.Utils.JsonReader;
 import com.foreseer.erate.Utils.Utils;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.IOException;
-import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Observable;

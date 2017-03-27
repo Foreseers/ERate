@@ -1,4 +1,4 @@
-package com.foreseer.erate;
+package com.foreseer.erate.Activities;
 
 import android.animation.LayoutTransition;
 import android.content.Context;
@@ -15,7 +15,6 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,8 +22,9 @@ import com.foreseer.erate.Currency.AbstractCurrency;
 import com.foreseer.erate.Currency.CurrencyHelper;
 import com.foreseer.erate.Fragments.AbstractRateFragment;
 import com.foreseer.erate.Fragments.RateFragment;
-import com.foreseer.erate.Rates.CachedExchangeRateStorage;
-import com.foreseer.erate.Rates.RateChecker;
+import com.foreseer.erate.R;
+import com.foreseer.erate.RatesUtils.CachedExchangeRateStorage;
+import com.foreseer.erate.RatesUtils.RateChecker;
 import com.foreseer.erate.SQL.CurrencyTableHandler;
 import com.foreseer.erate.SQL.FragmentTableHandler;
 

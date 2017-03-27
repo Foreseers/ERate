@@ -1,4 +1,4 @@
-package com.foreseer.erate.Rates;
+package com.foreseer.erate.RatesUtils;
 
 import com.foreseer.erate.Currency.AbstractCurrency;
 import com.foreseer.erate.SQL.CurrencyTableHandler;

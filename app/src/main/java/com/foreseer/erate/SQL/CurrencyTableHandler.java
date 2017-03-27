@@ -1,19 +1,17 @@
 package com.foreseer.erate.SQL;
 
 import android.content.ContentValues;
-import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.support.annotation.NonNull;
 
 import com.foreseer.erate.Currency.AbstractCurrency;
-import com.foreseer.erate.MainActivity;
-import com.foreseer.erate.Rates.CachedExchangeRateStorage;
-import com.foreseer.erate.Rates.RateChecker;
+import com.foreseer.erate.Activities.MainActivity;
+import com.foreseer.erate.RatesUtils.CachedExchangeRateStorage;
+import com.foreseer.erate.RatesUtils.RateChecker;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Callable;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;

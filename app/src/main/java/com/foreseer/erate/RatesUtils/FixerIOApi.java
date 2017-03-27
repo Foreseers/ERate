@@ -1,8 +1,7 @@
-package com.foreseer.erate.Rates;
+package com.foreseer.erate.RatesUtils;
 
 import io.reactivex.Observable;
 import retrofit2.http.GET;
-import retrofit2.http.Path;
 import retrofit2.http.Query;
 
 /**
