@@ -61,6 +61,15 @@ public class CurrencyHelper {
         return null;
     }
 
+    public static AbstractCurrency getCurrencyByName(String currencyName){
+        for (AbstractCurrency currency : currencyList){
+            if (currency.getCurrencyName().equals(currencyName)){
+                return currency;
+            }
+        }
+        return null;
+    }
+
     public static List<AbstractCurrency> getCurrencyList() {
         return currencyList;
     }

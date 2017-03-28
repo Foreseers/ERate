@@ -2,37 +2,45 @@ package com.foreseer.erate.Fragments;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.graphics.ColorUtils;
+import android.support.v4.view.GestureDetectorCompat;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import com.foreseer.erate.Currency.AbstractCurrency;
 import com.foreseer.erate.Currency.CurrencyHelper;
 import com.foreseer.erate.R;
-import com.wx.wheelview.adapter.ArrayWheelAdapter;
-import com.wx.wheelview.widget.WheelView;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
+import io.blackbox_vision.wheelview.view.WheelView;
 
 
 public class AddDialog extends DialogFragment {
 
     final String TAG = "addDialog";
-    private String previousSelection = "";
+
+    private String firstSelected;
+    private String secondSelected;
 
     private ArrayList<String> currencies;
 
@@ -55,29 +63,12 @@ public class AddDialog extends DialogFragment {
 
     @Override
     public void onStart() {
+        firstSelected = "";
+        secondSelected = "";
+
         initializeWheels();
 
-
-
-        Button addButton = (Button) getView().findViewById(R.id.button_add);
-        addButton.setOnClickListener(v -> {
-            listener.onAddFragment();
-            dismiss();
-        });
-
-        Button cancelButton = (Button) getView().findViewById(R.id.button_cancel);
-        cancelButton.setOnClickListener(v -> {
-            listener.onCancel();
-            dismiss();
-        });
         super.onStart();
-    }
-
-    public void onAddButtonPressed(View view) {
-        if (listener != null) {
-            listener.onAddFragment();
-        }
-        dismiss();
     }
 
     private void initializeWheels(){
@@ -87,38 +78,70 @@ public class AddDialog extends DialogFragment {
         }
         Collections.sort(currencies);
 
-        WheelView wheelView = (WheelView) getView().findViewById(R.id.wheelview_firstCurrency);
-        wheelView.setWheelAdapter(new ArrayWheelAdapter(getContext()));
-        wheelView.setSkin(WheelView.Skin.Holo);
-
         ArrayList<String> initial = new ArrayList<>();
         initial.addAll(currencies);
 
-        wheelView.setWheelData(initial);
+        WheelView wheelView = (WheelView) getView().findViewById(R.id.wheelview_firstCurrency);
+        wheelView.setTextSize(17);
+        wheelView.setItems(currencies);
+        wheelView.setCanLoop(false);
+        wheelView.setInitPosition(2);
+        initializeDoubleTapDetectors();
 
-        WheelView wheelView2 = (WheelView) getView().findViewById(R.id.wheelview_secondCurrency);
-        wheelView2.setWheelAdapter(new ArrayWheelAdapter(getContext()));
-        wheelView2.setSkin(WheelView.Skin.Holo);
-        wheelView2.setWheelData(currencies);
-
-        previousSelection = wheelView.getSelectionItem().toString();
-        currencies.remove(previousSelection);
-        wheelView2.setWheelData(currencies);
-
-        wheelView.setOnWheelItemSelectedListener((position, o) -> {
-            String newSelection = o.toString();
-            currencies.add(previousSelection);
-            previousSelection = newSelection;
-            currencies.remove(previousSelection);
-            Collections.sort(currencies);
-            wheelView2.setWheelData(currencies);
-        });
     }
 
-    @Override
-    public void onCancel(DialogInterface dialog) {
-        listener.onCancel();
-        super.onCancel(dialog);
+    private void initializeDoubleTapDetectors(){
+        WheelView wheelView = (WheelView) getView().findViewById(R.id.wheelview_firstCurrency);
+        final GestureDetector wheelDoubleTapDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener(){
+
+            @Override
+            public boolean onDoubleTap(MotionEvent e) {
+                if (firstSelected.equals("")){
+                    int index = wheelView.getSelectedItem();
+                    firstSelected = currencies.get(index);
+                    currencies.remove(index);
+                    ((TextView) getView().findViewById(R.id.textView_firstCurrency)).setText("Selected: " + firstSelected);
+                    wheelView.setItems(currencies);
+                } else {
+                    int index = wheelView.getSelectedItem();
+                    secondSelected = currencies.get(index);
+                    finishAddition();
+                }
+                return super.onDoubleTap(e);
+            }
+
+            @Override
+            public boolean onDoubleTapEvent(MotionEvent e) {
+                return super.onDoubleTapEvent(e);
+            }
+        });
+        wheelView.setOnTouchListener((v, event) -> wheelDoubleTapDetector.onTouchEvent(event));
+
+        TextView textView = (TextView) getView().findViewById(R.id.textView_firstCurrency);
+        final GestureDetector currencyTextViewDoubleTapDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener(){
+
+            @Override
+            public boolean onDoubleTap(MotionEvent e) {
+                if (!firstSelected.equals("")) {
+                    currencies.add(firstSelected);
+                    Collections.sort(currencies);
+                    firstSelected = "";
+                    wheelView.setItems(currencies);
+                    textView.setText("Selected: ");
+                }
+                return super.onDoubleTap(e);
+            }
+
+            @Override
+            public boolean onDoubleTapEvent(MotionEvent e) {
+                return super.onDoubleTapEvent(e);
+            }
+        });
+
+        textView.setOnTouchListener((v, event) -> currencyTextViewDoubleTapDetector.onTouchEvent(event));
+
+
+
     }
 
     @Override
@@ -132,6 +155,13 @@ public class AddDialog extends DialogFragment {
         }
     }
 
+    private void finishAddition(){
+        String first = firstSelected.split("\\(")[0].trim();
+        String second = secondSelected.split("\\(")[0].trim();
+        listener.onAddFragment(CurrencyHelper.getCurrencyByName(first), CurrencyHelper.getCurrencyByName(second));
+        dismiss();
+    }
+
     @Override
     public void onDetach() {
         super.onDetach();
@@ -139,8 +169,7 @@ public class AddDialog extends DialogFragment {
     }
 
     public interface onDialogInteractionListener {
-        void onCancel();
-        void onAddFragment();
+        void onAddFragment(AbstractCurrency first, AbstractCurrency second);
     }
 
     private void unbindDrawables(View view){
@@ -154,4 +183,5 @@ public class AddDialog extends DialogFragment {
             ((ViewGroup) view).removeAllViews();
         }
     }
+
 }

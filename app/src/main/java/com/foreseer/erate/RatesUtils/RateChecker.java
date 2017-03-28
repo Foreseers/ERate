@@ -124,15 +124,18 @@ public class RateChecker {
         exchangeRates = rates;
         done = true;
 
+        boolean cleanDb = CurrencyTableHandler.getInstance().getLastUpdateTime() == 0;
         CurrencyTableHandler.getInstance().updateRates(rates);
 
         Observable.defer(() -> Observable.just(CachedExchangeRateStorage.getInstance().updateCachedRates(rates, lastUpdateTime)))
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribeOn(Schedulers.io())
                 .subscribe(result -> {}, e -> activity.errorOccurred(e.getMessage()), () -> {
-                    activity.onRatesUpdateFinished();
-                    activity.updateLastUpdateTime(getLastUpdateTime());
-                    activity.updateExistingFragments();
+                    if (!cleanDb) {
+                        activity.onRatesUpdateFinished();
+                        activity.updateLastUpdateTime(getLastUpdateTime());
+                        activity.updateExistingFragments();
+                    }
                 });
 
     }

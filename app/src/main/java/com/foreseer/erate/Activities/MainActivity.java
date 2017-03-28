@@ -326,17 +326,6 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
         });
     }
 
-    @Override
-    public void onAddFragment() {
-        showShortToast("Added!");
-    }
-
-    @Override
-    public void onCancel() {
-        //clearGlide();
-        showShortToast("Cancelled!");
-    }
-
     public void clearGlide(){
         new Thread(() -> Glide.get(this).clearDiskCache()).start();
         Glide.get(this).clearMemory();
@@ -346,5 +335,10 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
     @Override
     public void onCurrencySelection(AbstractCurrency currency) {
         showShortToast("Selected currency!");
+    }
+
+    @Override
+    public void onAddFragment(AbstractCurrency first, AbstractCurrency second) {
+        addFragment(first, second);
     }
 }
