@@ -36,7 +36,8 @@
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="@+id/buttonAddFragment"
         app:layout_constraintVertical_bias="0.0"
-        app:srcCompat="@drawable/refresh" />
+        app:srcCompat="@drawable/refresh"
+        android:layout_marginEnd="8dp" />
 
     <ScrollView
         android:layout_width="0dp"
@@ -73,6 +74,20 @@
         android:layout_marginBottom="8dp"
         android:layout_marginLeft="4dp"
         app:layout_constraintBottom_toTopOf="@+id/buttonAddFragment"
-        app:layout_constraintLeft_toLeftOf="@+id/buttonAddFragment" />
+        app:layout_constraintLeft_toLeftOf="@+id/buttonAddFragment"
+        android:layout_marginStart="4dp" />
+
+    <ProgressBar
+        android:id="@+id/progressBar_update"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="0dp"
+        android:layout_marginTop="0dp"
+        android:indeterminate="true"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="@+id/imageButton_updateRates"
+        app:layout_constraintLeft_toLeftOf="@+id/imageButton_updateRates"
+        app:layout_constraintRight_toRightOf="@+id/imageButton_updateRates"
+        app:layout_constraintTop_toTopOf="@+id/imageButton_updateRates" />
 
 </android.support.constraint.ConstraintLayout>

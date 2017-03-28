@@ -11,6 +11,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.foreseer.erate.BuildConfig;
 import com.foreseer.erate.Currency.AbstractCurrency;
 import com.foreseer.erate.R;
@@ -57,7 +58,7 @@ public class RateFragment extends Fragment {
             mListener = (OnFragmentInteractionListener) context;
         } else {
             throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
+                    + " must implement onDialogInteractionListener");
         }
     }
 
@@ -83,13 +84,17 @@ public class RateFragment extends Fragment {
         String firstDrawable = firstCurrency.getCurrencyImageName();
         String secondDrawable = secondCurrency.getCurrencyImageName();
 
-        int firstImage = getContext().getResources().getIdentifier(firstDrawable, "drawable", BuildConfig.APPLICATION_ID);
-        int secondImage = getContext().getResources().getIdentifier(secondDrawable, "drawable", BuildConfig.APPLICATION_ID);
-
-        firstCurrencyImage.setImageDrawable(ContextCompat.getDrawable(getActivity(), getResources()
+        /*firstCurrencyImage.setImageDrawable(ContextCompat.getDrawable(getActivity(), getResources()
                 .getIdentifier(firstDrawable, "drawable", getActivity().getPackageName())));
         secondCurrencyImage.setImageDrawable(ContextCompat.getDrawable(getActivity(), getResources()
-                .getIdentifier(secondDrawable, "drawable", BuildConfig.APPLICATION_ID)));
+                .getIdentifier(secondDrawable, "drawable", BuildConfig.APPLICATION_ID)));*/
+        Glide.with(this)
+                .load(getResources().getIdentifier(firstDrawable, "drawable", getActivity().getPackageName()))
+                .into(firstCurrencyImage);
+        Glide.with(this)
+                .load(getResources().getIdentifier(secondDrawable, "drawable", getActivity().getPackageName()))
+                .into(secondCurrencyImage);
+
 
         firstToSecondRate = rate;
         secondToFirstRate = (1 / rate);

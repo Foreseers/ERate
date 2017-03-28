@@ -4,6 +4,7 @@ import android.animation.LayoutTransition;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
@@ -15,12 +16,16 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.foreseer.erate.Currency.AbstractCurrency;
 import com.foreseer.erate.Currency.CurrencyHelper;
 import com.foreseer.erate.Fragments.AbstractRateFragment;
+import com.foreseer.erate.Fragments.AddDialog;
+import com.foreseer.erate.Fragments.CurrencyFragment;
 import com.foreseer.erate.Fragments.RateFragment;
 import com.foreseer.erate.R;
 import com.foreseer.erate.RatesUtils.CachedExchangeRateStorage;
@@ -33,7 +38,14 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements RateFragment.OnFragmentInteractionListener {
+import javax.microedition.khronos.opengles.GL;
+
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
+
+public class MainActivity extends AppCompatActivity implements RateFragment.OnFragmentInteractionListener, AddDialog.onDialogInteractionListener,
+        CurrencyFragment.OnCurrencySelection {
 
     //Handler of the fragment SQL table, which stores all the active fragments
     private FragmentTableHandler fragmentTableHandler;
@@ -45,12 +57,16 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
 
     private CachedExchangeRateStorage cachedExchangeRateStorage;
 
+    private DialogFragment addDialog;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         activeFragments = new ArrayList<>();
+
+        addDialog = new AddDialog();
 
         ViewGroup viewGroup = (ViewGroup) findViewById(R.id.linearLayout);
         LayoutTransition transition = new LayoutTransition();
@@ -75,9 +91,11 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
         } else {
             //In case if we update the currency table(first launch), animate the update button
             ImageButton updateButton = (ImageButton) findViewById(R.id.imageButton_updateRates);
-            Animation animation = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.refreshbuttonrotate);
-            updateButton.startAnimation(animation);
             updateButton.setEnabled(false);
+
+            ProgressBar progressBar = (ProgressBar) findViewById(R.id.progressBar_update);
+            progressBar.setVisibility(View.VISIBLE);
+            updateButton.setVisibility(View.INVISIBLE);
         }
     }
 
@@ -138,24 +156,36 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
      * @param view View which called the method
      */
     public void addFragment(View view) {
+        showAddDialog();
         //If currency DB isn't ready yet, adding fragments isn't permitted.
-        if (currencyTableHandler.isReady()) {
-            AbstractCurrency nok = CurrencyHelper.getCurrency("NOK");
-            AbstractCurrency rub = CurrencyHelper.getCurrency("RUB");
-            AbstractCurrency usd = CurrencyHelper.getCurrency("USD");
-            AbstractCurrency eur = CurrencyHelper.getCurrency("EUR");
-            AbstractCurrency czk = CurrencyHelper.getCurrency("CZK");
-            AbstractCurrency aud = CurrencyHelper.getCurrency("AUD");
-            /*addFragment(CurrencyHelper.getCurrency("NOK"), CurrencyHelper.getCurrency("RUB"),
-                    currencyTableHandler.getExchangeRate(CurrencyHelper.getCurrency("NOK"), CurrencyHelper.getCurrency("RUB")));
-            addFragment(CurrencyHelper.getCurrency("USD"), CurrencyHelper.getCurrency("EUR"),
-                    currencyTableHandler.getExchangeRate(CurrencyHelper.getCurrency("USD"), CurrencyHelper.getCurrency("EUR")));*/
-            addFragment(rub, nok);
-            addFragment(czk, nok);
-            addFragment(rub, czk);
-            addFragment(usd, nok);
-            addFragment(eur, aud);
+//        if (currencyTableHandler.isReady()) {
+//            AbstractCurrency nok = CurrencyHelper.getCurrency("NOK");
+//            AbstractCurrency rub = CurrencyHelper.getCurrency("RUB");
+//            AbstractCurrency usd = CurrencyHelper.getCurrency("USD");
+//            AbstractCurrency eur = CurrencyHelper.getCurrency("EUR");
+//            AbstractCurrency czk = CurrencyHelper.getCurrency("CZK");
+//            AbstractCurrency aud = CurrencyHelper.getCurrency("AUD");
+//            /*addFragment(CurrencyHelper.getCurrency("NOK"), CurrencyHelper.getCurrency("RUB"),
+//                    currencyTableHandler.getExchangeRate(CurrencyHelper.getCurrency("NOK"), CurrencyHelper.getCurrency("RUB")));
+//            addFragment(CurrencyHelper.getCurrency("USD"), CurrencyHelper.getCurrency("EUR"),
+//                    currencyTableHandler.getExchangeRate(CurrencyHelper.getCurrency("USD"), CurrencyHelper.getCurrency("EUR")));*/
+//            addFragment(rub, nok);
+//            addFragment(czk, nok);
+//            addFragment(rub, czk);
+//            addFragment(usd, nok);
+//            addFragment(eur, aud);
+//        }
+    }
+
+    private void showAddDialog(){
+        FragmentManager manager = getSupportFragmentManager();
+        FragmentTransaction ft = manager.beginTransaction();
+        Fragment prev = manager.findFragmentByTag("addDialog");
+        if (prev != null) {
+            ft.remove(prev);
         }
+
+        addDialog.show(getSupportFragmentManager(), "addDialog");
     }
 
     /**
@@ -170,9 +200,11 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
         }
         //New ratechecker with "forUpdates" parametre set to true.
         final RateChecker newChecker = RateChecker.newInstance(this);
-        Animation animation = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.refreshbuttonrotate);
-        view.startAnimation(animation);
         view.setEnabled(false);
+
+        ProgressBar progressBar = (ProgressBar) findViewById(R.id.progressBar_update);
+        progressBar.setVisibility(View.VISIBLE);
+        view.setVisibility(View.INVISIBLE);
     }
 
 
@@ -236,14 +268,19 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
         runOnUiThread(() -> {
             showShortToast("Rates updated!");
             ImageButton button = (ImageButton) findViewById(R.id.imageButton_updateRates);
-            button.clearAnimation();
             button.setEnabled(true);
+
+            ProgressBar progressBar = (ProgressBar) findViewById(R.id.progressBar_update);
+            progressBar.setVisibility(View.INVISIBLE);
+            button.setVisibility(View.VISIBLE);
 
             //If the "add fragment" button is unclickable, set it clickable.
             Button addButton = (Button) findViewById(R.id.buttonAddFragment);
             if (!addButton.isEnabled()) {
                 addButton.setEnabled(true);
             }
+
+
         });
     }
 
@@ -272,8 +309,11 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
         }
         runOnUiThread(() -> {
             ImageButton updateButton = (ImageButton) findViewById(R.id.imageButton_updateRates);
-            updateButton.clearAnimation();
             updateButton.setEnabled(true);
+
+            ProgressBar progressBar = (ProgressBar) findViewById(R.id.progressBar_update);
+            progressBar.setVisibility(View.INVISIBLE);
+            updateButton.setVisibility(View.VISIBLE);
         });
     }
 
@@ -284,5 +324,27 @@ public class MainActivity extends AppCompatActivity implements RateFragment.OnFr
             Toast toast = Toast.makeText(getApplicationContext(), text, duration);
             toast.show();
         });
+    }
+
+    @Override
+    public void onAddFragment() {
+        showShortToast("Added!");
+    }
+
+    @Override
+    public void onCancel() {
+        //clearGlide();
+        showShortToast("Cancelled!");
+    }
+
+    public void clearGlide(){
+        new Thread(() -> Glide.get(this).clearDiskCache()).start();
+        Glide.get(this).clearMemory();
+    }
+
+
+    @Override
+    public void onCurrencySelection(AbstractCurrency currency) {
+        showShortToast("Selected currency!");
     }
 }

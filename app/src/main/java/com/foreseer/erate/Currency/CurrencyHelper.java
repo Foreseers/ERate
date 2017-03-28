@@ -60,4 +60,8 @@ public class CurrencyHelper {
         }
         return null;
     }
+
+    public static List<AbstractCurrency> getCurrencyList() {
+        return currencyList;
+    }
 }

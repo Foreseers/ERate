@@ -1,0 +1,67 @@
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.foreseer.erate.Fragments.AddDialog"
+    tools:layout_editor_absoluteY="81dp"
+    tools:layout_editor_absoluteX="0dp">
+
+    <!-- TODO: Update blank fragment layout -->
+
+    <Button
+        android:id="@+id/button_add"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:text="@string/add"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="8dp"
+        android:layout_marginLeft="8dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginStart="8dp" />
+
+    <Button
+        android:id="@+id/button_cancel"
+        android:layout_width="150dp"
+        android:layout_height="0dp"
+        android:text="@string/cancel"
+        app:layout_constraintLeft_toRightOf="@+id/button_add"
+        android:layout_marginLeft="8dp"
+        app:layout_constraintBottom_toBottomOf="@+id/button_add"
+        android:layout_marginBottom="0dp"
+        app:layout_constraintTop_toTopOf="@+id/button_add"
+        android:layout_marginTop="0dp"
+        android:layout_marginRight="8dp"
+        app:layout_constraintVertical_bias="0.0"
+        app:layout_constraintRight_toRightOf="parent" />
+
+    <com.wx.wheelview.widget.WheelView
+        android:id="@+id/wheelview_firstCurrency"
+        android:layout_width="0dp"
+        android:layout_height="200dp"
+        android:layout_marginLeft="0dp"
+        app:layout_constraintLeft_toLeftOf="@+id/button_add"
+        android:layout_marginRight="0dp"
+        app:layout_constraintRight_toRightOf="@+id/button_add"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="8dp"
+        app:layout_constraintHorizontal_bias="1.0"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/button_add" />
+
+    <com.wx.wheelview.widget.WheelView
+        android:id="@+id/wheelview_secondCurrency"
+        android:layout_width="0dp"
+        android:layout_height="200dp"
+        android:layout_marginLeft="0dp"
+        app:layout_constraintLeft_toLeftOf="@+id/button_cancel"
+        android:layout_marginRight="0dp"
+        app:layout_constraintRight_toRightOf="@+id/button_cancel"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/button_cancel"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="8dp"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintVertical_bias="0.502" />
+
+</android.support.constraint.ConstraintLayout>
